@@ -1323,8 +1323,8 @@ PROGRAM testMatrixTypes
                   (SIZE(thisMatrix%b(2)%elem) == 3) .AND. &
                   (thisMatrix%b(2)%ib == 1) .AND. & 
                   (thisMatrix%b(2)%jb == 2) .AND. &
-                  (thisMatrix%b(2)%ie == 4) .AND. &
-                  (thisMatrix%b(2)%je == 5) .AND. &
+                  (thisMatrix%b(2)%ie == 3) .AND. &
+                  (thisMatrix%b(2)%je == 4) .AND. &
                   (thisMatrix%b(2)%didx == 1))
           ASSERT(bool, 'banded%init(...)')
       ENDSELECT
@@ -1433,8 +1433,149 @@ PROGRAM testMatrixTypes
       ASSERT(bool, 'banded%init(...)')
       CALL thisMatrix%clear()
       WRITE(*,*) '  Passed: CALL banded%init(...)'
-
-
+      !check set
+      !test normal use case (split diagonal)
+      !want to build:
+      ![1 2 0 0]
+      ![0 3 4 0]
+      ![8 0 5 6]
+      ![0 9 0 7]
+      !with main diagonal split [1,3],[5,7]
+      CALL thisMatrix%clear()
+      CALL pList%clear()
+      CALL pList%add('MatrixType->n',4_SNK)
+      CALL pList%add('MatrixType->m',4_SNK)
+      CALL pList%add('MatrixType->nband',4_SNK)
+      CALL pList%add('bandi',(/1_SIK,3_SIK,1_SIK,3_SIK/))
+      CALL pList%add('bandj',(/1_SIK,3_SIK,2_SIK,1_SIK/))
+      CALL pList%add('bandl',(/2_SIK,2_SIK,3_SIK,2_SIK/))
+      CALL pList%validate(pList,optListMat)
+      CALL thisMatrix%init(pList)
+      CALL thisMatrix%set(1,1,1._SRK)
+      CALL thisMatrix%set(1,2,2._SRK)
+      CALL thisMatrix%set(2,2,3._SRK)
+      CALL thisMatrix%set(2,3,4._SRK)
+      CALL thisMatrix%set(3,3,5._SRK)
+      CALL thisMatrix%set(3,4,6._SRK)
+      CALL thisMatrix%set(4,4,7._SRK)
+      CALL thisMatrix%set(3,1,8._SRK)
+      CALL thisMatrix%set(4,2,9._SRK)
+      SELECTTYPE(thisMatrix)
+        TYPE IS(BandedMatrixType)
+          bool = thisMatrix%b(1)%elem(1) == 1
+          ASSERT(bool, 'banded%set(...)')
+          bool = thisMatrix%b(1)%elem(2) == 3
+          ASSERT(bool, 'banded%set(...)')
+          bool = thisMatrix%b(2)%elem(1) == 5
+          ASSERT(bool, 'banded%set(...)')
+          bool = thisMatrix%b(2)%elem(2) == 7
+          ASSERT(bool, 'banded%set(...)')
+          bool = thisMatrix%b(3)%elem(1) == 2
+          ASSERT(bool, 'banded%set(...)')
+          bool = thisMatrix%b(3)%elem(2) == 4
+          ASSERT(bool, 'banded%set(...)')
+          bool = thisMatrix%b(3)%elem(3) == 6
+          ASSERT(bool, 'banded%set(...)')
+          bool = thisMatrix%b(4)%elem(1) == 8
+          ASSERT(bool, 'banded%set(...)')
+          bool = thisMatrix%b(4)%elem(2) == 9
+          ASSERT(bool, 'banded%set(...)')
+      ENDSELECT
+      !check matrix that hasnt been init, i,j out of bounds
+      CALL thisMatrix%clear()
+      CALL thisMatrix%set(1,1,1._SRK)
+      CALL pList%add('MatrixType->n',4_SNK)
+      CALL pList%add('MatrixType->m',4_SNK)
+      CALL pList%add('MatrixType->nband',4_SNK)
+      CALL pList%add('bandi',(/1_SIK,3_SIK,1_SIK,3_SIK/))
+      CALL pList%add('bandj',(/1_SIK,3_SIK,2_SIK,1_SIK/))
+      CALL pList%add('bandl',(/2_SIK,2_SIK,3_SIK,2_SIK/))
+      CALL thisMatrix%init(pList)
+      CALL thisMatrix%set(-1,1,1._SRK)
+      CALL thisMatrix%set(1,-1,1._SRK)
+      CALL thisMatrix%set(5,1,1._SRK)
+      CALL thisMatrix%set(1,5,1._SRK)
+      !no crash? good
+      CALL thisMatrix%clear()
+      WRITE(*,*) '  Passed: CALL banded%set(...)'
+      !check get functionality
+      ![1 2 0 0]
+      ![0 3 4 0]
+      ![8 0 5 6]
+      ![0 9 0 7]
+      !with main diagonal split [1,3],[5,7]
+      CALL thisMatrix%clear()
+      CALL pList%clear()
+      CALL pList%add('MatrixType->n',4_SNK)
+      CALL pList%add('MatrixType->m',4_SNK)
+      CALL pList%add('MatrixType->nband',4_SNK)
+      CALL pList%add('bandi',(/1_SIK,3_SIK,1_SIK,3_SIK/))
+      CALL pList%add('bandj',(/1_SIK,3_SIK,2_SIK,1_SIK/))
+      CALL pList%add('bandl',(/2_SIK,2_SIK,3_SIK,2_SIK/))
+      CALL pList%validate(pList,optListMat)
+      CALL thisMatrix%init(pList)
+      CALL thisMatrix%set(1,1,1._SRK)
+      CALL thisMatrix%set(1,2,2._SRK)
+      CALL thisMatrix%set(2,2,3._SRK)
+      CALL thisMatrix%set(2,3,4._SRK)
+      CALL thisMatrix%set(3,3,5._SRK)
+      CALL thisMatrix%set(3,4,6._SRK)
+      CALL thisMatrix%set(4,4,7._SRK)
+      CALL thisMatrix%set(3,1,8._SRK)
+      CALL thisMatrix%set(4,2,9._SRK)
+      IF(ALLOCATED(dummyvec)) DEALLOCATE(dummyvec)
+      ALLOCATE(dummyvec(9))
+      dummyvec=0
+      CALL thisMatrix%get(1,1,dummyvec(1))
+      CALL thisMatrix%get(1,2,dummyvec(2))
+      CALL thisMatrix%get(2,2,dummyvec(3))
+      CALL thisMatrix%get(2,3,dummyvec(4))
+      CALL thisMatrix%get(3,3,dummyvec(5))
+      CALL thisMatrix%get(3,4,dummyvec(6))
+      CALL thisMatrix%get(4,4,dummyvec(7))
+      CALL thisMatrix%get(3,1,dummyvec(8))
+      CALL thisMatrix%get(4,2,dummyvec(9))
+      SELECTTYPE(thisMatrix)
+        TYPE IS(BandedMatrixType)
+          DO i=1,9
+            bool = dummyvec(i) == i
+            ASSERT(bool, 'banded%get(...)')
+          ENDDO
+      ENDSELECT
+      !test get with uninit, make sure no crash.
+      CALL thisMatrix%clear()
+      SELECTTYPE(thisMatrix)
+        TYPE IS(BandedMatrixType)
+          dummy=0.0_SRK
+          CALL thisMatrix%get(1,1,dummy)
+          bool = dummy == 0.0_SRK
+          ASSERT(bool, 'banded%get(...)')
+      ENDSELECT
+      !check matrix that hasnt been init, i,j out of bounds
+      CALL thisMatrix%clear()
+      CALL pList%add('MatrixType->n',4_SNK)
+      CALL pList%add('MatrixType->m',4_SNK)
+      CALL pList%add('MatrixType->nband',4_SNK)
+      CALL pList%add('bandi',(/1_SIK,3_SIK,1_SIK,3_SIK/))
+      CALL pList%add('bandj',(/1_SIK,3_SIK,2_SIK,1_SIK/))
+      CALL pList%add('bandl',(/2_SIK,2_SIK,3_SIK,2_SIK/))
+      CALL thisMatrix%init(pList)
+      SELECTTYPE(thisMatrix)
+        TYPE IS(BandedMatrixType)
+          CALL thisMatrix%get(-1,1,dummy)
+          bool = dummy == -1051._SRK
+          ASSERT(bool, 'banded%get(...)')
+          CALL thisMatrix%get(1,-1,dummy)
+          bool = dummy == -1051._SRK
+          ASSERT(bool, 'banded%get(...)')
+          CALL thisMatrix%get(5,1,dummy)
+          bool = dummy == -1051._SRK
+          ASSERT(bool, 'banded%get(...)')
+          CALL thisMatrix%get(1,5,dummy)
+          bool = dummy == -1051._SRK
+          ASSERT(bool, 'banded%get(...)')
+      ENDSELECT
+      WRITE(*,*) '  Passed: CALL banded%get(...)'
       DEALLOCATE(thisMatrix)
 !
 !Test for dense rectangular matrices
@@ -1640,10 +1781,10 @@ PROGRAM testMatrixTypes
           bool = dummy == -1051._SRK
           ASSERT(bool, 'densesquare%get(...)')
           CALL thisMatrix%get(-1,2,dummy)
-          bool = dummy==-1051._SRK
+          bool = dummy == -1051._SRK
           ASSERT(bool, 'densesquare%get(...)')
           CALL thisMatrix%get(2,-1,dummy)
-          bool = dummy==-1051._SRK
+          bool = dummy == -1051._SRK
           ASSERT(bool, 'densesquare%get(...)')
       ENDSELECT
       !test get with uninit, make sure no crash.
@@ -3699,6 +3840,7 @@ PROGRAM testMatrixTypes
 !-------------------------------------------------------------------------------
     SUBROUTINE testTransposeMatrix()
       CLASS(SparseMatrixType),ALLOCATABLE :: testA
+      CLASS(MatrixType),POINTER :: mat_p
       LOGICAL(SBK) :: bool
       TYPE(ParamType) :: tmpPlist
 #ifdef FUTILITY_HAVE_PETSC
@@ -3729,6 +3871,55 @@ PROGRAM testMatrixTypes
       ASSERT(bool,"wrong ja")
       bool=ALL(testA%a(:) .APPROXEQ. (/2.0_SRK,5.0_SRK,1.0_SRK,3.0_SRK,4.0_SRK,6.0_SRK/))
       ASSERT(bool,"wrong a")
+      CALL tmpPlist%clear()
+
+      ! Banded Matrix
+      !want to build:
+      ![1 2 0 0 0]
+      ![0 3 4 0 0]
+      ![8 0 5 6 0]
+      ![0 9 0 7 0]
+      !with main diagonal split [1,3],[5,7]
+      !transpose to
+      ![1 0 8 0]
+      ![2 3 0 9]
+      ![0 4 5 0]
+      ![0 0 6 7]
+      ![0 0 0 0]
+      ALLOCATE(BandedMatrixType :: mat_p)
+      CALL tmpPlist%add('MatrixType->n',4)
+      CALL tmpPlist%add('MatrixType->m',5)
+      CALL tmpPlist%add('MatrixType->nband',4)
+      CALL tmpPlist%add('bandi',(/1_SIK,3_SIK,1_SIK,3_SIK/))
+      CALL tmpPlist%add('bandj',(/1_SIK,3_SIK,2_SIK,1_SIK/))
+      CALL tmpPlist%add('bandl',(/2_SIK,2_SIK,3_SIK,2_SIK/))
+      CALL mat_p%init(tmpPlist)
+      CALL mat_p%set(1,1,1._SRK)
+      CALL mat_p%set(1,2,2._SRK)
+      CALL mat_p%set(2,2,3._SRK)
+      CALL mat_p%set(2,3,4._SRK)
+      CALL mat_p%set(3,3,5._SRK)
+      CALL mat_p%set(3,4,6._SRK)
+      CALL mat_p%set(4,4,7._SRK)
+      CALL mat_p%set(3,1,8._SRK)
+      CALL mat_p%set(4,2,9._SRK)
+      CALL mat_p%transpose()
+      SELECTTYPE(mat_p)
+        TYPE IS(BandedMatrixType)
+          bool = (mat_p%n == 5).AND.(mat_p%m == 4)
+          ASSERT(bool,"banded%transpose()")
+          bool = (mat_p%b(3)%ib == 2).AND.(mat_p%b(3)%ie == 4)
+          ASSERT(bool,"banded%transpose()")
+          bool = (mat_p%b(4)%jb == 3).AND.(mat_p%b(4)%je == 4)
+          ASSERT(bool,"banded%transpose()")
+          bool = (mat_p%b(3)%didx == -1).AND.(mat_p%b(4)%didx == 2)
+          ASSERT(bool,"banded%transpose()")
+          ASSERT(mat_p%b(3)%elem(2) == 4, "banded%transpose()")
+          ASSERT(mat_p%b(1)%elem(2) == 3, "banded%transpose()")
+      ENDSELECT
+      CALL mat_p%clear()
+      DEALLOCATE(mat_p)
+      NULLIFY(mat_p)
       CALL tmpPlist%clear()
 
 
@@ -3830,7 +4021,7 @@ PROGRAM testMatrixTypes
       NULLIFY(mat_p)
       CALL params%clear()
 
-      ! Dense Square matrix
+      ! TriDiag matrix
       ALLOCATE(TridiagMatrixType :: mat_p)
       CALL params%add("MatrixType->n",4)
       CALL params%add("MatrixType->isSym",.FALSE.)
@@ -3846,6 +4037,39 @@ PROGRAM testMatrixTypes
               ASSERT(bool,"wrong zeroentries")
             ENDDO
           ENDDO
+      ENDSELECT
+      CALL mat_p%clear()
+      DEALLOCATE(mat_p)
+      NULLIFY(mat_p)
+      CALL params%clear()
+
+      ! Banded Matrix
+      ALLOCATE(BandedMatrixType :: mat_p)
+      CALL params%add('MatrixType->n',4)
+      CALL params%add('MatrixType->m',4)
+      CALL params%add('MatrixType->nband',4)
+      CALL params%add('bandi',(/1_SIK,3_SIK,1_SIK,3_SIK/))
+      CALL params%add('bandj',(/1_SIK,3_SIK,2_SIK,1_SIK/))
+      CALL params%add('bandl',(/2_SIK,2_SIK,3_SIK,2_SIK/))
+      CALL mat_p%init(params)
+      CALL mat_p%set(1,1,1._SRK)
+      CALL mat_p%set(1,2,2._SRK)
+      CALL mat_p%set(2,2,3._SRK)
+      CALL mat_p%set(2,3,4._SRK)
+      CALL mat_p%set(3,3,5._SRK)
+      CALL mat_p%set(3,4,6._SRK)
+      CALL mat_p%set(4,4,7._SRK)
+      CALL mat_p%set(3,1,8._SRK)
+      CALL mat_p%set(4,2,9._SRK)
+      CALL mat_p%zeroentries()
+      SELECTTYPE(mat_p)
+        TYPE IS(BandedMatrixType)
+          DO i=1,SIZE(mat_p%b)
+            DO j=1,SIZE(mat_p%b(i)%elem)
+              bool=(mat_p%b(i)%elem(j) .APPROXEQ. 0.0_SRK)
+              ASSERT(bool,"banded%zeroentries()")
+            ENDDO  
+          ENDDO  
       ENDSELECT
       CALL mat_p%clear()
       DEALLOCATE(mat_p)
